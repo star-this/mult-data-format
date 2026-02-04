@@ -1,0 +1,154 @@
+<<< meta lang=toml version=1
+id = "com.example.mult-demo"
+title = "MULT/1 Demonstration Document"
+authors = ["You", "Agent"]
+created_utc = "2026-02-03T14:00:00Z"
+
+# Schemas defined in this file (names are free-form, but should be stable)
+schemas = ["package@1", "artifact@1", "people@1", "notes@1"]
+>>>
+
+<<< md name=readme
+# MULT/1 demo
+
+This is a single plain-text document containing:
+- Human/agent-facing documentation (this Markdown block)
+- Machine-readable manifest data (TOML blocks)
+- A safe YAML subset (SYAML-1) for simple human-friendly config lists
+- Token-efficient tables (TSV-1)
+- Embedded schemas (LS-1) that validate authoritative blocks
+
+Agent rules (recommended):
+1. Only treat blocks with `schema="..."` as authoritative structured data.
+2. Do not infer missing keys; fail validation instead.
+3. Prefer editing TOML and TSV blocks; keep Markdown descriptive.
+>>>
+
+<<< schema name=artifact@1 lang=toml
+# LS-1 schema: object with a ULID id and optional metadata
+type = "object"
+required = ["id", "kind"]
+
+[properties.id]
+type = "ulid"
+
+[properties.kind]
+type = "string"
+enum = ["dataset", "model", "document", "binary", "other"]
+
+[properties.created_utc]
+type = "datetime"
+
+[properties.tags]
+type = "array"
+
+[properties.tags.items]
+type = "string"
+min_len = 1
+>>>
+
+<<< toml name=artifact schema="artifact@1"
+id = "01HZY8R1J9R8H3Q9CNEC6R4W5Z"
+kind = "document"
+created_utc = "2026-02-03T14:00:00Z"
+tags = ["demo", "mult", "ulid"]
+>>>
+
+<<< schema name=package@1 lang=toml
+# A package manifest example (TOML) using semver + semver_req
+type = "object"
+required = ["name", "version"]
+
+[properties.name]
+type = "string"
+min_len = 1
+pattern = "^[a-z][a-z0-9_-]*$"
+
+[properties.version]
+type = "semver"
+
+[properties.description]
+type = "string"
+max_len = 200
+
+[properties.deps]
+type = "map"
+
+[properties.deps.keys]
+type = "string"
+
+[properties.deps.values]
+type = "semver_req"
+>>>
+
+<<< toml name=package schema="package@1"
+name = "mult-demo"
+version = "1.2.3"
+description = "Demonstration of a woven human+machine MULT/1 file."
+
+[deps]
+ecto = "~> 3.11"
+phoenix = ">= 1.7.0, < 2.0.0"
+>>>
+
+<<< schema name=people@1 lang=toml
+# TSV table schema: header must include these columns; types validated per cell
+type = "table"
+
+[[columns]]
+name = "id"
+type = "int"
+
+[[columns]]
+name = "person_ulid"
+type = "ulid"
+
+[[columns]]
+name = "name"
+type = "string"
+optional = false
+
+[[columns]]
+name = "born"
+type = "date"
+optional = true
+>>>
+
+<<< tsv name=people schema="people@1"
+id	person_ulid	name	born
+1	01HZY8R1J9R8H3Q9CNEC6R4W5Z	Ada	1815-12-10
+2	01HZY8R1J9R8H3Q9CNEC6R4W5Y	Alan	1912-06-23
+3	01HZY8R1J9R8H3Q9CNEC6R4W5X	Grace
+>>>
+
+<<< schema name=notes@1 lang=toml
+# SYAML block schema example: a simple object with a list of items
+type = "object"
+required = ["priority", "items"]
+
+[properties.priority]
+type = "string"
+enum = ["low", "medium", "high"]
+
+[properties.items]
+type = "array"
+
+[properties.items.items]
+type = "string"
+min_len = 1
+>>>
+
+<<< syaml name=notes schema="notes@1"
+# SYAML-1: safe subset (no tags, no anchors, no flow style, no multiline scalars)
+priority: high
+items:
+  - "Keep schemas next to data"
+  - Prefer TOML for authoritative manifests
+  - Prefer TSV for big tables
+>>>
+
+;; Unknown/custom blocks are allowed (tools should preserve them as opaque text)
+<<< blob name=opaque_example purpose="demonstrate extension"
+This block kind is not standard in MULT/1.
+A decoder that doesn't understand it should still preserve it verbatim.
+>>>
